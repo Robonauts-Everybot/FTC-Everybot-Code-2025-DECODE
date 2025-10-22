@@ -97,10 +97,13 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
 
     private double CATAPULT_UP_POWER = -1.0;
     private double CATAPULT_DOWN_POWER = 1.0;
+    private double CATAPULT_HOLD_POWER = 1.0; // FIXME: This should probably be less; needs testing on real hardware.  Leaving at 1.0 for now to match old behavior, but this is a great way to cook a motor...
 
-    private enum CatapultModes {UP, DOWN, BRAKE}
+    private enum CatapultModes {UP, DOWN, HOLD}
 
     private CatapultModes pivotMode;
+
+    private static ElapsedTime pivotDownTime = new ElapsedTime();
 
     private enum FootMode {UP, DOWN, BRAKE}
 
@@ -139,11 +142,37 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
         // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs backward
         // Keep testing until ALL the wheels move the robot forward when you push the left joystick forward.
 
+        // reset encoders and set runmode of drive motors
+        leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         // set direction of wheel motors
         leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+
+        // set wheel motors to BRAKE mode for easier control
+        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // reset encoders and set runmode of drive motors
+        intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        catapult1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        catapult1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        catapult2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        catapult2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        foot.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        foot.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // set direction of subsystem motors
         intake.setDirection(DcMotor.Direction.FORWARD); // Forward should INTAKE.
@@ -151,7 +180,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
         catapult2.setDirection(DcMotor.Direction.FORWARD);
         foot.setDirection(DcMotor.Direction.REVERSE); // Backwards should should stay UP, or in the stowed position
 
-        // set initial subsystem behavior
+        // set subsystem motors to BRAKE mode
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         catapult1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         catapult2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -248,7 +277,6 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 footPower = FOOT_UP_POWER;
             } else {
                 footmode = FootMode.BRAKE;
-                foot.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             }
 
             // Determine pivot mode
@@ -258,23 +286,16 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 catapult2.setPower(CATAPULT_UP_POWER);
             } else if (catapultDownButton) {
                 pivotMode = CatapultModes.DOWN;
+                // need full power with 12 rubber bands. Half that amount can be adjusted to use .5% power.
                 catapult1.setPower(CATAPULT_DOWN_POWER);
                 catapult2.setPower(CATAPULT_DOWN_POWER);
-            } else {
-                // put the catapult down
-                double cata_to_down_time = 1.0;
-                while (opModeIsActive() && catatime.seconds() < cata_to_down_time) {
-                    // Keep motor running
-                    catapult1.setPower(CATAPULT_DOWN_POWER);
-                    catapult2.setPower(CATAPULT_DOWN_POWER);
-                    // need full power with 12 rubber bands. Half that amount can be adjusted to use .5% power.
-                }
-
-                pivotMode = CatapultModes.BRAKE;
-                catapult1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                catapult2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                pivotDownTime.reset();
+            } else if (pivotMode == CatapultModes.DOWN && pivotDownTime.time() > 1.0) {
+                pivotMode = CatapultModes.HOLD;
                 // If you try to turn off motors the catapult will not stay down
-                // motors will get warm while in BRAKE mode
+                // motors will get warm while holding
+                catapult1.setPower(CATAPULT_DOWN_POWER);
+                catapult2.setPower(CATAPULT_DOWN_POWER);
             }
 
             // WRITE EFFECTORS - Send calculated power to wheels

@@ -97,7 +97,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
 
     private double CATAPULT_UP_POWER = -1.0;
     private double CATAPULT_DOWN_POWER = 1.0;
-    private double CATAPULT_HOLD_POWER = 1.0; // FIXME: This should probably be less; needs testing on real hardware.  Leaving at 1.0 for now to match old behavior, but this is a great way to cook a motor...
+    private double CATAPULT_HOLD_POWER = 0.15;
 
     private enum CatapultModes {UP, DOWN, HOLD}
 
@@ -290,7 +290,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 catapult1.setPower(CATAPULT_DOWN_POWER);
                 catapult2.setPower(CATAPULT_DOWN_POWER);
                 pivotDownTime.reset();
-            } else if (pivotMode == CatapultModes.DOWN && pivotDownTime.time() > 1.0) {
+            } else if (pivotMode == CatapultModes.DOWN && pivotDownTime.time() > 0.5) {
                 pivotMode = CatapultModes.HOLD;
                 // If you try to turn off motors the catapult will not stay down
                 // motors will get warm while holding
@@ -324,10 +324,10 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
             telemetry.addData("Intake", "%%4.2f", intake.getPower());
             telemetry.addData("Foot Power", "%4.2f", foot.getPower());
             telemetry.addData("Foot MODE", "%s", footmode);
-            telemetry.addData("Catapult1 Current/Target/power", "%d, %d, %4.2f",
-                    catapult1.getCurrentPosition(), catapult1.getTargetPosition(), catapult1.getPower());
-            telemetry.addData("Catapult2 Current/Target/power", "%d, %d, %4.2f",
-                    catapult2.getCurrentPosition(), catapult2.getTargetPosition(), catapult2.getPower());
+            telemetry.addData("Catapult1 Position/power", "%d, %4.2f",
+                    catapult1.getCurrentPosition(), catapult1.getPower());
+            telemetry.addData("Catapult2 Position/power", "%d, %4.2f",
+                    catapult2.getCurrentPosition(), catapult2.getPower());
             telemetry.addData("Catapult MODE", "%s", catapult_mode_str);
             telemetry.update();
         }

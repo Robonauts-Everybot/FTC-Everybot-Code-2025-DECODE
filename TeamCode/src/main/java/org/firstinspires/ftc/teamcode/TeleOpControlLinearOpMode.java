@@ -294,8 +294,8 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 pivotMode = CatapultModes.HOLD;
                 // If you try to turn off motors the catapult will not stay down
                 // motors will get warm while holding
-                catapult1.setPower(CATAPULT_DOWN_POWER);
-                catapult2.setPower(CATAPULT_DOWN_POWER);
+                catapult1.setPower(CATAPULT_HOLD_POWER);
+                catapult2.setPower(CATAPULT_HOLD_POWER);
             }
 
             // WRITE EFFECTORS - Send calculated power to wheels

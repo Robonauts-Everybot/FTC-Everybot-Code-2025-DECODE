@@ -96,13 +96,14 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
     private double footPower = FOOT_OFF_POWER;
 
     private double CATAPULT_UP_POWER = -1.0;
-    private double CATAPULT_DOWN_POWER = 1.0;
-    private double CATAPULT_HOLD_POWER = 0.15;
+    private double CATAPULT_DOWN_POWER = 1.0;  // Need full power with 12 rubber bands. Half that amount can be adjusted to use 0.5 power.
+    private double CATAPULT_HOLD_POWER = 0.15; // Only use a small amount of power to hold it down once it is down, othewise the motor will get very hot from stalling and can damage itself
 
     private enum CatapultModes {UP, DOWN, HOLD}
 
     private CatapultModes pivotMode;
 
+    private static ElapsedTime pivotUpTime = new ElapsedTime();
     private static ElapsedTime pivotDownTime = new ElapsedTime();
 
     private enum FootMode {UP, DOWN, BRAKE}
@@ -218,11 +219,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 footOutButton = false;
             }
 
-            boolean catapultUpButton = gamepad1.right_bumper;
-            boolean catapultDownButton = gamepad1.right_trigger > 0.2;
-            if (catapultUpButton && catapultDownButton) {
-                catapultUpButton = false;
-            }
+            boolean catapultFireButton = gamepad1.right_bumper;
 
             // DRIVE CODE
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
@@ -280,20 +277,18 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
             }
 
             // Determine pivot mode
-            if (catapultUpButton) {
+            if (catapultFireButton) {
                 pivotMode = CatapultModes.UP;
                 catapult1.setPower(CATAPULT_UP_POWER);
                 catapult2.setPower(CATAPULT_UP_POWER);
-            } else if (catapultDownButton) {
+                pivotUpTime.reset();
+            } else if (pivotMode == CatapultModes.UP && pivotUpTime.time() > 0.5) {
                 pivotMode = CatapultModes.DOWN;
-                // need full power with 12 rubber bands. Half that amount can be adjusted to use .5% power.
                 catapult1.setPower(CATAPULT_DOWN_POWER);
                 catapult2.setPower(CATAPULT_DOWN_POWER);
                 pivotDownTime.reset();
             } else if (pivotMode == CatapultModes.DOWN && pivotDownTime.time() > 0.5) {
                 pivotMode = CatapultModes.HOLD;
-                // If you try to turn off motors the catapult will not stay down
-                // motors will get warm while holding
                 catapult1.setPower(CATAPULT_HOLD_POWER);
                 catapult2.setPower(CATAPULT_HOLD_POWER);
             }

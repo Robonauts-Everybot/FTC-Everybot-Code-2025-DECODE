@@ -100,11 +100,9 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
     private double CATAPULT_HOLD_POWER = 0.2;
 
     private enum CatapultModes {UP, DOWN, HOLD}
-
     private CatapultModes pivotMode;
 
     private enum FootMode {UP, DOWN, BRAKE}
-
     private FootMode footmode;
 
     /*
@@ -253,7 +251,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 footPower = FOOT_UP_POWER;
             } else {
                 footmode = FootMode.BRAKE;
-                foot.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                footPower = FOOT_OFF_POWER;
             }
 
             // Determine pivot mode

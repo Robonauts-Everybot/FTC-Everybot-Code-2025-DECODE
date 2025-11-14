@@ -107,7 +107,6 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
     private static ElapsedTime pivotDownTime = new ElapsedTime();
 
     private enum FootMode {UP, DOWN, BRAKE}
-
     private FootMode footmode;
 
     /*
@@ -196,6 +195,10 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
         catatime.reset();
         // run until the end of the match (driver presses STOP)
         // same as previous year's loop() code
+        double leftFrontPower = 0;
+        double rightFrontPower = 0;
+        double leftBackPower = 0;
+        double rightBackPower = 0;
         while (opModeIsActive()) {
             double max;
 
@@ -224,10 +227,10 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
             // DRIVE CODE
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
             // Set up a variable for each drive wheel to save the power level for telemetry.
-            double leftFrontPower = axial + lateral + yaw;
-            double rightFrontPower = axial - lateral - yaw;
-            double leftBackPower = axial - lateral + yaw;
-            double rightBackPower = axial + lateral - yaw;
+            leftFrontPower = axial + lateral + yaw;
+            rightFrontPower = axial - lateral - yaw;
+            leftBackPower = axial - lateral + yaw;
+            rightBackPower = axial + lateral - yaw;
 
             // Normalize the values so no wheel power exceeds 100%
             // This ensures that the robot maintains the desired motion.
@@ -274,6 +277,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 footPower = FOOT_UP_POWER;
             } else {
                 footmode = FootMode.BRAKE;
+                footPower = FOOT_OFF_POWER;
             }
 
             // Determine pivot mode
@@ -328,4 +332,3 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
         }
     }
 }
-

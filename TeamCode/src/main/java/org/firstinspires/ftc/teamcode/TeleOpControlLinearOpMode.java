@@ -96,11 +96,15 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
     private double footPower = FOOT_OFF_POWER;
 
     private double CATAPULT_UP_POWER = -1.0;
-    private double CATAPULT_DOWN_POWER = 1.0;
-    private double CATAPULT_HOLD_POWER = 0.2;
+    private double CATAPULT_DOWN_POWER = 1.0;  // Need full power with 12 rubber bands. Half that amount can be adjusted to use 0.5 power.
+    private double CATAPULT_HOLD_POWER = 0.15; // Only use a small amount of power to hold it down once it is down, othewise the motor will get very hot from stalling and can damage itself
 
     private enum CatapultModes {UP, DOWN, HOLD}
+
     private CatapultModes pivotMode;
+
+    private static ElapsedTime pivotUpTime = new ElapsedTime();
+    private static ElapsedTime pivotDownTime = new ElapsedTime();
 
     private enum FootMode {UP, DOWN, BRAKE}
     private FootMode footmode;
@@ -138,11 +142,37 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
         // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs backward
         // Keep testing until ALL the wheels move the robot forward when you push the left joystick forward.
 
+        // reset encoders and set runmode of drive motors
+        leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         // set direction of wheel motors
         leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+
+        // set wheel motors to BRAKE mode for easier control
+        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // reset encoders and set runmode of drive motors
+        intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        catapult1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        catapult1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        catapult2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        catapult2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        foot.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        foot.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // set direction of subsystem motors
         intake.setDirection(DcMotor.Direction.FORWARD); // Forward should INTAKE.
@@ -150,7 +180,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
         catapult2.setDirection(DcMotor.Direction.FORWARD);
         foot.setDirection(DcMotor.Direction.REVERSE); // Backwards should should stay UP, or in the stowed position
 
-        // set initial subsystem behavior
+        // set subsystem motors to BRAKE mode
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         catapult1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         catapult2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -192,11 +222,7 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
                 footOutButton = false;
             }
 
-            boolean catapultUpButton = gamepad1.right_bumper;
-            boolean catapultDownButton = gamepad1.right_trigger > 0.2;
-            if (catapultUpButton && catapultDownButton) {
-                catapultUpButton = false;
-            }
+            boolean catapultFireButton = gamepad1.right_bumper;
 
             // DRIVE CODE
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
@@ -255,19 +281,20 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
             }
 
             // Determine pivot mode
-            if (catapultUpButton) {
+            if (catapultFireButton) {
                 pivotMode = CatapultModes.UP;
                 catapult1.setPower(CATAPULT_UP_POWER);
                 catapult2.setPower(CATAPULT_UP_POWER);
-            } else if (catapultDownButton) {
+                pivotUpTime.reset();
+            } else if (pivotMode == CatapultModes.UP && pivotUpTime.time() > 0.5) {
                 pivotMode = CatapultModes.DOWN;
                 catapult1.setPower(CATAPULT_DOWN_POWER);
                 catapult2.setPower(CATAPULT_DOWN_POWER);
-            } else {
+                pivotDownTime.reset();
+            } else if (pivotMode == CatapultModes.DOWN && pivotDownTime.time() > 0.5) {
                 pivotMode = CatapultModes.HOLD;
                 catapult1.setPower(CATAPULT_HOLD_POWER);
                 catapult2.setPower(CATAPULT_HOLD_POWER);
-                //Slight feed forward to keep catapult down while driving
             }
 
             // WRITE EFFECTORS - Send calculated power to wheels
@@ -296,10 +323,10 @@ public class TeleOpControlLinearOpMode extends LinearOpMode {
             telemetry.addData("Intake", "%%4.2f", intake.getPower());
             telemetry.addData("Foot Power", "%4.2f", foot.getPower());
             telemetry.addData("Foot MODE", "%s", footmode);
-            telemetry.addData("Catapult1 Current/Target/power", "%d, %d, %4.2f",
-                    catapult1.getCurrentPosition(), catapult1.getTargetPosition(), catapult1.getPower());
-            telemetry.addData("Catapult2 Current/Target/power", "%d, %d, %4.2f",
-                    catapult2.getCurrentPosition(), catapult2.getTargetPosition(), catapult2.getPower());
+            telemetry.addData("Catapult1 Position/power", "%d, %4.2f",
+                    catapult1.getCurrentPosition(), catapult1.getPower());
+            telemetry.addData("Catapult2 Position/power", "%d, %4.2f",
+                    catapult2.getCurrentPosition(), catapult2.getPower());
             telemetry.addData("Catapult MODE", "%s", catapult_mode_str);
             telemetry.update();
         }
